@@ -10,7 +10,11 @@
     "preview": "vite preview"
   },
   "devDependencies": {
+    "@typescript-eslint/parser": "^5.44.0",
+    "eslint": "^8.28.0",
+    "eslint-plugin-functional": "^4.4.1",
     "prettier": "^2.7.1",
+    "tsutils": "^3.21.0",
     "typescript": "^4.6.4",
     "vite": "^3.2.3"
   },
