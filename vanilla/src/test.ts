@@ -1,33 +1,39 @@
+/* eslint functional/no-return-void: "off" */
+/* eslint functional/functional-parameters: "off" */
+/* eslint functional/no-expression-statement: "off" */
+
 import { main } from "./game";
 import { Console, Program, Random } from "./hkt";
 import { dropLeft, append } from "fp-ts/ReadonlyArray";
 import * as S from "fp-ts/State";
 import { pipe } from "fp-ts/function";
 
-class TestData {
-  constructor(
-    readonly input: ReadonlyArray<string>,
-    readonly output: ReadonlyArray<string>,
-    readonly nums: ReadonlyArray<number>
-  ) {}
-  putStrLn(message: string): [void, TestData] {
-    return [
-      undefined,
-      new TestData(this.input, pipe(this.output, append(message)), this.nums),
-    ];
-  }
-  getStrLn(): [string, TestData] {
-    return [
-      this.input[0],
-      new TestData(dropLeft(1)(this.input), this.output, this.nums),
-    ];
-  }
-  nextInt(_upper: number): [number, TestData] {
-    return [
-      this.nums[0],
-      new TestData(this.input, this.output, dropLeft(1)(this.nums)),
-    ];
-  }
+
+interface TestDataType {
+  readonly putStrLn: (s: string) => readonly [undefined, TestDataType];
+  readonly getStrLn: () => readonly [string, TestDataType];
+  readonly nextInt: (n: number) => readonly [number, TestDataType];
+}
+
+function TestData(
+  input: ReadonlyArray<string>,
+  output: ReadonlyArray<string>,
+  nums: ReadonlyArray<number>
+):TestDataType {
+  return {
+    putStrLn(message: string) {
+      return [
+        undefined,
+        TestData(input, pipe(output, append(message)), nums),
+      ] as const;
+    },
+    getStrLn() {
+      return [input[0], TestData(dropLeft(1)(input), output, nums)] as const;
+    },
+    nextInt() {
+      return [nums[0], TestData(input, output, dropLeft(1)(nums))] as const;
+    },
+  } as const;
 }
 
 const URI = "Test";
@@ -40,7 +46,7 @@ declare module "fp-ts/HKT" {
   }
 }
 
-interface Test<A> extends S.State<TestData, A> {}
+type Test<A> = (s: TestDataType) => readonly [A, TestDataType]
 
 const of =
   <A>(a: A): Test<A> =>
@@ -70,6 +76,6 @@ const mainTestTask = main({
   ...randomTest,
 });
 
-const testExample = new TestData(["Giulio", "1", "n"], [], [1]);
+const testExample = TestData(["Giulio", "1", "n"], [], [1]);
 
 console.log(mainTestTask(testExample));

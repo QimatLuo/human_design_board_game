@@ -3,7 +3,7 @@ import { Kind, URIS } from "fp-ts/HKT";
 import { apS as apS_ } from "fp-ts/Apply";
 import { chainFirst as chainFirst_ } from "fp-ts/Chain";
 import * as O from "fp-ts/Option";
-import { pipe } from "fp-ts/function";
+import { constant, pipe } from "fp-ts/function";
 
 function parse(s: string): O.Option<number> {
   const i = +s;
@@ -15,14 +15,14 @@ export function main<F extends URIS>(F: Main<F>): Kind<F, void> {
     <A, B>(f: (a: A) => Kind<F, B>) =>
     (ma: Kind<F, A>): Kind<F, B> =>
       F.chain(ma, f);
-  const Do: Kind<F, {}> = F.of({});
+  const Do: Kind<F, Record<string, unknown>> = F.of({});
   const apS = apS_(F);
   const chainFirst = chainFirst_(F);
 
   const ask = (question: string): Kind<F, string> =>
     pipe(
       F.putStrLn(question),
-      chain(() => F.getStrLn)
+      chain(constant(F.getStrLn)),
     );
 
   const shouldContinue = (name: string): Kind<F, boolean> => {
@@ -50,7 +50,7 @@ export function main<F extends URIS>(F: Main<F>): Kind<F, void> {
         pipe(
           parse(guess),
           O.fold(
-            () => F.putStrLn("You did not enter an integer!"),
+            constant(F.putStrLn("You did not enter an integer!")),
             (x) =>
               x === secret
                 ? F.putStrLn(`You guessed right, ${name}!`)
@@ -60,7 +60,7 @@ export function main<F extends URIS>(F: Main<F>): Kind<F, void> {
           )
         )
       ),
-      chain(() => shouldContinue(name)),
+      chain(constant(shouldContinue(name))),
       chain((b) => (b ? gameLoop(name) : F.of<void>(undefined)))
     );
   };
