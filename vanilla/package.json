@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "format": "prettier --write . --ignore-path=.gitignnore",
     "build": "tsc && vite build",
     "preview": "vite preview"
   },
