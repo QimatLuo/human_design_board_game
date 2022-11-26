@@ -1,5 +1,3 @@
-import { createInterface } from "readline";
-import { log } from "fp-ts/Console";
 import { flow, pipe } from "fp-ts/function";
 import * as O from "fp-ts/Option";
 import { randomInt } from "fp-ts/Random";
@@ -10,20 +8,32 @@ import * as T from "fp-ts/Task";
 //
 
 // read from standard input
+const form = document.querySelector("form");
+const input = document.querySelector("input");
 const getStrLn: T.Task<string> = () =>
   new Promise((resolve) => {
-    const rl = createInterface({
-      input: process.stdin,
-      output: process.stdout,
-    });
-    rl.question("> ", (answer) => {
-      rl.close();
-      resolve(answer);
-    });
+    const cb = (e: SubmitEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (input) {
+        resolve(input.value);
+        input.value = "";
+      }
+      form?.removeEventListener("submit", cb);
+    };
+    form?.addEventListener("submit", cb);
   });
 
 // write to standard output
-const putStrLn = flow(log, T.fromIO);
+const putStrLn = flow(
+  (x: string) => () => {
+    const ol = document.querySelector("ol");
+    const li = document.createElement("li");
+    li.innerText = x;
+    ol?.append(li);
+  },
+  T.fromIO
+);
 
 // ask something and get the answer
 function ask(question: string): T.Task<string> {
@@ -93,4 +103,4 @@ const main: T.Task<void> = pipe(
 );
 
 // tslint:disable-next-line: no-floating-promises
-main();
+main().finally(() => location.reload());
