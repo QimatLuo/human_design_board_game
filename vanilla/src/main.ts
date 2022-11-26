@@ -1,9 +1,9 @@
 import { createInterface } from "readline";
-import { log } from "../src/Console";
-import { flow, pipe } from "../src/function";
-import * as O from "../src/Option";
-import { randomInt } from "../src/Random";
-import * as T from "../src/Task";
+import { log } from "fp-ts/Console";
+import { flow, pipe } from "fp-ts/function";
+import * as O from "fp-ts/Option";
+import { randomInt } from "fp-ts/Random";
+import * as T from "fp-ts/Task";
 
 //
 // helpers
