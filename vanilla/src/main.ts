@@ -1,4 +1,7 @@
-import { flow, pipe } from "fp-ts/function";
+import { getStrLn, putStrLn, reload } from "./side-effects";
+import { curry2, guard } from "fp-ts-std/Function";
+import * as s from "fp-ts/string";
+import { constant as c, flow, pipe } from "fp-ts/function";
 import * as O from "fp-ts/Option";
 import { randomInt } from "fp-ts/Random";
 import * as T from "fp-ts/Task";
@@ -7,40 +10,9 @@ import * as T from "fp-ts/Task";
 // helpers
 //
 
-// read from standard input
-const form = document.querySelector("form");
-const input = document.querySelector("input");
-const getStrLn: T.Task<string> = () =>
-  new Promise((resolve) => {
-    const cb = (e: SubmitEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (input) {
-        resolve(input.value);
-        input.value = "";
-      }
-      form?.removeEventListener("submit", cb);
-    };
-    form?.addEventListener("submit", cb);
-  });
-
-// write to standard output
-const putStrLn = flow(
-  (x: string) => () => {
-    const ol = document.querySelector("ol");
-    const li = document.createElement("li");
-    li.innerText = x;
-    ol?.append(li);
-  },
-  T.fromIO
-);
-
 // ask something and get the answer
 function ask(question: string): T.Task<string> {
-  return pipe(
-    putStrLn(question),
-    T.chain(() => getStrLn)
-  );
+  return pipe(putStrLn(question), T.fromIO, T.chain(c(getStrLn)));
 }
 
 // get a random int between 1 and 5
@@ -57,18 +29,18 @@ function parse(s: string): O.Option<number> {
 //
 
 function shouldContinue(name: string): T.Task<boolean> {
+  const eq = curry2(s.Eq.equals);
   return pipe(
     ask(`Do you want to continue, ${name} (y/n)?`),
-    T.chain((answer) => {
-      switch (answer.toLowerCase()) {
-        case "y":
-          return T.of(true);
-        case "n":
-          return T.of(false);
-        default:
-          return shouldContinue(name);
-      }
-    })
+    T.chain(
+      flow(
+        s.toLowerCase,
+        guard([
+          [eq("y"), c(T.of(true))],
+          [eq("n"), c(T.of(false))],
+        ])(flow(c(name), shouldContinue))
+      )
+    )
   );
 }
 
@@ -80,18 +52,14 @@ function gameLoop(name: string): T.Task<void> {
     T.chain(({ secret, guess }) =>
       pipe(
         parse(guess),
-        O.fold(
-          () => putStrLn("You did not enter an integer!"),
-          (x) =>
-            x === secret
-              ? putStrLn(`You guessed right, ${name}!`)
-              : putStrLn(
-                  `You guessed wrong, ${name}! The number was: ${secret}`
-                )
+        O.fold(flow(c("You did not enter an integer!"), putStrLn), (x) =>
+          x === secret
+            ? putStrLn(`You guessed right, ${name}!`)
+            : putStrLn(`You guessed wrong, ${name}! The number was: ${secret}`)
         )
       )
     ),
-    T.chain(() => shouldContinue(name)),
+    T.chain(flow(c(name), shouldContinue)),
     T.chain((b) => (b ? gameLoop(name) : T.of(undefined)))
   );
 }
@@ -102,5 +70,4 @@ const main: T.Task<void> = pipe(
   T.chain(gameLoop)
 );
 
-// tslint:disable-next-line: no-floating-promises
-main().finally(() => location.reload());
+main().finally(reload); // eslint-disable-line functional/no-expression-statement
