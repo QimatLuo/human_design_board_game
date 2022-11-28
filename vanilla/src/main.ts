@@ -1,4 +1,6 @@
 import { getStrLn, putStrLn, reload } from "./side-effects";
+import { curry2, guard } from "fp-ts-std/Function";
+import * as s from "fp-ts/string";
 import { constant as c, flow, pipe } from "fp-ts/function";
 import * as O from "fp-ts/Option";
 import { randomInt } from "fp-ts/Random";
@@ -27,18 +29,18 @@ function parse(s: string): O.Option<number> {
 //
 
 function shouldContinue(name: string): T.Task<boolean> {
+  const eq = curry2(s.Eq.equals);
   return pipe(
     ask(`Do you want to continue, ${name} (y/n)?`),
-    T.chain((answer) => {
-      switch (answer.toLowerCase()) {
-        case "y":
-          return T.of(true);
-        case "n":
-          return T.of(false);
-        default:
-          return shouldContinue(name);
-      }
-    })
+    T.chain(
+      flow(
+        s.toLowerCase,
+        guard([
+          [eq("y"), c(T.of(true))],
+          [eq("n"), c(T.of(false))],
+        ])(flow(c(name), shouldContinue))
+      )
+    )
   );
 }
 
