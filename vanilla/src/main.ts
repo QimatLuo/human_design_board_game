@@ -1,4 +1,6 @@
 import { flow, pipe } from "fp-ts/function";
+import { warn } from "fp-ts/Console";
+import * as IOO from "fp-ts/IOOption";
 import * as O from "fp-ts/Option";
 import { randomInt } from "fp-ts/Random";
 import * as T from "fp-ts/Task";
@@ -8,30 +10,39 @@ import * as T from "fp-ts/Task";
 //
 
 // read from standard input
-const form = document.querySelector("form");
-const input = document.querySelector("input");
 const getStrLn: T.Task<string> = () =>
   new Promise((resolve) => {
-    const cb = (e: SubmitEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (input) {
-        resolve(input.value);
-        input.value = "";
-      }
-      form?.removeEventListener("submit", cb);
-    };
-    form?.addEventListener("submit", cb);
+    pipe(
+      IOO.Do,
+      IOO.bind("form", () => IOO.fromNullable(document.querySelector("form"))),
+      IOO.bind("input", () =>
+        IOO.fromNullable(document.querySelector("input"))
+      ),
+      IOO.match(warn(`<form> not found.`), ({ form, input }) => {
+        const cb = (e: SubmitEvent) => {
+          e.preventDefault();
+          e.stopPropagation();
+          resolve(input.value);
+          input.value = "";
+          form?.removeEventListener("submit", cb);
+        };
+        form?.addEventListener("submit", cb);
+      })
+    )();
   });
 
 // write to standard output
 const putStrLn = flow(
-  (x: string) => () => {
-    const ol = document.querySelector("ol");
-    const li = document.createElement("li");
-    li.innerText = x;
-    ol?.append(li);
-  },
+  (x: string) =>
+    pipe(
+      IOO.Do,
+      IOO.bind("ol", () => IOO.fromNullable(document.querySelector("ol"))),
+      IOO.bind("li", () => IOO.fromNullable(document.createElement("li"))),
+      IOO.match(warn(`<ol> not found.`), ({ ol, li }) => {
+        li.innerText = x;
+        ol?.append(li);
+      })
+    ),
   T.fromIO
 );
 
