@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "format": "prettier --write . --ignore-path=.gitignnore",
+    "lint": "eslint .",
     "build": "tsc && vite build",
     "preview": "vite preview"
   },
