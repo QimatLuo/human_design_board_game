@@ -1,5 +1,5 @@
 import { getStrLn, putStrLn, reload } from "./side-effects";
-import { pipe } from "fp-ts/function";
+import { constant as c, flow, pipe } from "fp-ts/function";
 import * as O from "fp-ts/Option";
 import { randomInt } from "fp-ts/Random";
 import * as T from "fp-ts/Task";
@@ -10,10 +10,7 @@ import * as T from "fp-ts/Task";
 
 // ask something and get the answer
 function ask(question: string): T.Task<string> {
-  return pipe(
-    putStrLn(question),
-    T.chain(() => getStrLn)
-  );
+  return pipe(putStrLn(question), T.fromIO, T.chain(c(getStrLn)));
 }
 
 // get a random int between 1 and 5
@@ -53,18 +50,14 @@ function gameLoop(name: string): T.Task<void> {
     T.chain(({ secret, guess }) =>
       pipe(
         parse(guess),
-        O.fold(
-          () => putStrLn("You did not enter an integer!"),
-          (x) =>
-            x === secret
-              ? putStrLn(`You guessed right, ${name}!`)
-              : putStrLn(
-                  `You guessed wrong, ${name}! The number was: ${secret}`
-                )
+        O.fold(flow(c("You did not enter an integer!"), putStrLn), (x) =>
+          x === secret
+            ? putStrLn(`You guessed right, ${name}!`)
+            : putStrLn(`You guessed wrong, ${name}! The number was: ${secret}`)
         )
       )
     ),
-    T.chain(() => shouldContinue(name)),
+    T.chain(flow(c(name), shouldContinue)),
     T.chain((b) => (b ? gameLoop(name) : T.of(undefined)))
   );
 }
