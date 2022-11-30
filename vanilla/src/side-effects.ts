@@ -27,14 +27,18 @@ export const getStrLn: T.Task<string> = () =>
   });
 
 export const putStrLn = flow(
-  (x: string) =>
+  (x: string, defaultInput?: string) =>
     pipe(
       IOO.Do,
       IOO.bind("ol", () => IOO.fromNullable(document.querySelector("ol"))),
       IOO.bind("li", () => IOO.fromNullable(document.createElement("li"))),
-      IOO.match(warn(`<ol> not found.`), ({ ol, li }) => {
+      IOO.bind("input", () =>
+        IOO.fromNullable(document.querySelector("input"))
+      ),
+      IOO.match(warn(`<ol> not found.`), ({ ol, li, input }) => {
         li.innerText = x;
         ol?.append(li);
+        input.value = defaultInput || "";
       })
     ),
   T.fromIO
