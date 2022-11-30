@@ -11,8 +11,8 @@ import * as T from "fp-ts/Task";
 //
 
 // ask something and get the answer
-function ask(question: string): T.Task<string> {
-  return pipe(putStrLn(question), T.fromIO, T.chain(c(getStrLn)));
+function ask(question: string, defaultInput?: string): T.Task<string> {
+  return pipe(putStrLn(question, defaultInput), T.fromIO, T.chain(c(getStrLn)));
 }
 
 // get a random int between 1 and 5
