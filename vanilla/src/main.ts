@@ -50,14 +50,12 @@ function askYesNo(question: string, defaultInput?: string): T.Task<boolean> {
   const eq = curry2(s.Eq.equals);
   return pipe(
     ask(`${question} (y/n)`, defaultInput),
+    T.map(s.toLowerCase),
     T.chain(
-      flow(
-        s.toLowerCase,
         guard([
           [eq("y"), c(T.of(true))],
           [eq("n"), c(T.of(false))],
         ])(loop)
-      )
     )
   );
 }
