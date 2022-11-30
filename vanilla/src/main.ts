@@ -5,6 +5,7 @@ import { flow, pipe } from "fp-ts/function";
 import * as A from "fp-ts/Array";
 import * as I from "fp-ts/Identity";
 import * as RA from "fp-ts/ReadonlyArray";
+import * as RT from "fp-ts/ReaderTask";
 import * as T from "fp-ts/Task";
 
 function gameLoop(name: readonly string[]): T.Task<void> {
@@ -16,16 +17,26 @@ function gameLoop(name: readonly string[]): T.Task<void> {
   );
 }
 
-const main: T.Task<void> = pipe(
-  askBetween("How many players?", 3, 6, 3),
-  T.chain(
-    flow(
-      curry2(A.makeBy<T.Task<string>>),
-      I.ap((x) => askNonEmpty(`Name of Player ${x + 1}:`)),
-      T.sequenceSeqArray
-    )
-  ),
-  T.chain(gameLoop)
+interface DefaultValue {
+  readonly players: number;
+}
+
+const askNumberOfPlayers: RT.ReaderTask<DefaultValue, number> = (d) =>
+  askBetween("How many players?", 3, 6, d.players);
+
+const setEachPlayersName: (n: number) => T.Task<readonly string[]> = flow(
+  curry2(A.makeBy<T.Task<string>>),
+  I.ap((x) => askNonEmpty(`Name of Player ${x + 1}:`)),
+  T.sequenceSeqArray
 );
 
-main().finally(reload); // eslint-disable-line functional/no-expression-statement
+const main: RT.ReaderTask<DefaultValue, void> = pipe(
+  askNumberOfPlayers,
+  RT.chainTaskK(setEachPlayersName),
+  RT.chainTaskK(gameLoop)
+);
+
+const deps = {
+  players: 3,
+};
+main(deps)().finally(reload); // eslint-disable-line functional/no-expression-statement
