@@ -92,7 +92,7 @@ function gameLoop(name: string): T.Task<void> {
 }
 
 const main: T.Task<void> = pipe(
-  ask("What is your name?", "Player"),
+  askNonEmpty("What is your name?", "Player"),
   T.chainFirst((name) => putStrLn(`Hello, ${name} welcome to the game!`)),
   T.chain(gameLoop)
 );
