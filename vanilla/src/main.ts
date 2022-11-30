@@ -77,22 +77,6 @@ const random = T.fromIO(randomInt(1, 5));
 // game
 //
 
-function shouldContinue(name: string): T.Task<boolean> {
-  const eq = curry2(s.Eq.equals);
-  return pipe(
-    ask(`Do you want to continue, ${name} (y/n)?`, "y"),
-    T.chain(
-      flow(
-        s.toLowerCase,
-        guard([
-          [eq("y"), c(T.of(true))],
-          [eq("n"), c(T.of(false))],
-        ])(flow(c(name), shouldContinue))
-      )
-    )
-  );
-}
-
 function gameLoop(name: string): T.Task<void> {
   return pipe(
     T.Do,
@@ -103,7 +87,7 @@ function gameLoop(name: string): T.Task<void> {
         ? putStrLn(`You guessed right, ${name}!`)
         : putStrLn(`You guessed wrong, ${name}! The number was: ${secret}`)
     ),
-    T.chain(flow(c(name), shouldContinue)),
+    T.chain(c(askYesNo(`Do you want to continue, ${name}?`, "y"))),
     T.chain((b) => (b ? gameLoop(name) : T.of(undefined)))
   );
 }
