@@ -74,9 +74,9 @@ function gameLoop(name: string): T.Task<void> {
     T.apS("secret", random),
     T.apS("guess", askBetween(`Dear ${name}, please guess a number.`, 1, 5, 1)),
     T.chain(({ secret, guess }) =>
-          guess === secret
-            ? putStrLn(`You guessed right, ${name}!`)
-            : putStrLn(`You guessed wrong, ${name}! The number was: ${secret}`)
+      guess === secret
+        ? putStrLn(`You guessed right, ${name}!`)
+        : putStrLn(`You guessed wrong, ${name}! The number was: ${secret}`)
     ),
     T.chain(flow(c(name), shouldContinue)),
     T.chain((b) => (b ? gameLoop(name) : T.of(undefined)))
