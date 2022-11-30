@@ -45,6 +45,14 @@ function askBetween(
   );
 }
 
+function askNonEmpty(question: string, defaultInput?: string): T.Task<string> {
+  const loop = flow(c(curry2(askNonEmpty)), I.ap(question), I.ap(defaultInput));
+  return pipe(
+    ask(question, defaultInput),
+    T.chain(flow(O.fromPredicate(P.not(s.isEmpty)), O.match(loop, T.of)))
+  );
+}
+
 // get a random int between 1 and 5
 const random = T.fromIO(randomInt(1, 5));
 
