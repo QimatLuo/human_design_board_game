@@ -45,6 +45,23 @@ function askBetween(
   );
 }
 
+function askYesNo(question: string, defaultInput?: string): T.Task<boolean> {
+  const loop = flow(c(curry2(askYesNo)), I.ap(question), I.ap(defaultInput));
+  const eq = curry2(s.Eq.equals);
+  return pipe(
+    ask(`${question} (y/n)`, defaultInput),
+    T.chain(
+      flow(
+        s.toLowerCase,
+        guard([
+          [eq("y"), c(T.of(true))],
+          [eq("n"), c(T.of(false))],
+        ])(loop)
+      )
+    )
+  );
+}
+
 function askNonEmpty(question: string, defaultInput?: string): T.Task<string> {
   const loop = flow(c(curry2(askNonEmpty)), I.ap(question), I.ap(defaultInput));
   return pipe(
