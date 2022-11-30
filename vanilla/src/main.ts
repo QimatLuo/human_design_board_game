@@ -31,7 +31,7 @@ function parse(s: string): O.Option<number> {
 function shouldContinue(name: string): T.Task<boolean> {
   const eq = curry2(s.Eq.equals);
   return pipe(
-    ask(`Do you want to continue, ${name} (y/n)?`),
+    ask(`Do you want to continue, ${name} (y/n)?`, "y"),
     T.chain(
       flow(
         s.toLowerCase,
@@ -48,7 +48,7 @@ function gameLoop(name: string): T.Task<void> {
   return pipe(
     T.Do,
     T.apS("secret", random),
-    T.apS("guess", ask(`Dear ${name}, please guess a number from 1 to 5`)),
+    T.apS("guess", ask(`Dear ${name}, please guess a number from 1 to 5`, "1")),
     T.chain(({ secret, guess }) =>
       pipe(
         parse(guess),
@@ -65,7 +65,7 @@ function gameLoop(name: string): T.Task<void> {
 }
 
 const main: T.Task<void> = pipe(
-  ask("What is your name?"),
+  ask("What is your name?", "Player"),
   T.chainFirst((name) => putStrLn(`Hello, ${name} welcome to the game!`)),
   T.chain(gameLoop)
 );
