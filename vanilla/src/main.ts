@@ -1,6 +1,9 @@
 import { askBetween, askNonEmpty, askYesNo } from "./ask";
 import { putStrLn, reload } from "./side-effects";
-import { constant as c, pipe } from "fp-ts/function";
+import { curry2 } from "fp-ts-std/Function";
+import { constant as c, flow, pipe } from "fp-ts/function";
+import * as A from "fp-ts/Array";
+import * as I from "fp-ts/Identity";
 import { randomInt } from "fp-ts/Random";
 import * as T from "fp-ts/Task";
 
@@ -15,7 +18,7 @@ const random = T.fromIO(randomInt(1, 5));
 // game
 //
 
-function gameLoop(name: string): T.Task<void> {
+function gameLoop(name: readonly string[]): T.Task<void> {
   return pipe(
     T.Do,
     T.apS("secret", random),
@@ -31,8 +34,14 @@ function gameLoop(name: string): T.Task<void> {
 }
 
 const main: T.Task<void> = pipe(
-  askNonEmpty("What is your name?", "Player"),
-  T.chainFirst((name) => putStrLn(`Hello, ${name} welcome to the game!`)),
+  askBetween("How many players?", 3, 6, 3),
+  T.chain(
+    flow(
+      curry2(A.makeBy<T.Task<string>>),
+      I.ap((x) => askNonEmpty(`Name of Player ${x + 1}:`)),
+      T.sequenceSeqArray
+    )
+  ),
   T.chain(gameLoop)
 );
 
