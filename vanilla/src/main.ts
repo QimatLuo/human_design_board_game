@@ -22,10 +22,13 @@ interface DefaultValue {
   readonly players: number;
 }
 
-const askNumberOfPlayers: RTE.ReaderTaskEither<DefaultValue, Error, number> = (d) =>
-  askBetween("How many players?", 3, 6, d.players);
+const askNumberOfPlayers: RTE.ReaderTaskEither<DefaultValue, Error, number> = (
+  d
+) => askBetween("How many players?", 3, 6, d.players);
 
-const setEachPlayersName: (n: number) => TE.TaskEither<Error, readonly string[]> = flow(
+const setEachPlayersName: (
+  n: number
+) => TE.TaskEither<Error, readonly string[]> = flow(
   curry2(A.makeBy<TE.TaskEither<Error, string>>),
   I.ap((x) => askNonEmpty(`Name of Player ${x + 1}:`)),
   TE.sequenceSeqArray

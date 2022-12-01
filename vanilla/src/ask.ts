@@ -36,7 +36,7 @@ export function askBetween(
         O.chain(O.fromPredicate(between(n.Ord)(min, max))),
         O.match(loop, TE.of)
       )
-    ),
+    )
   );
 }
 
@@ -54,7 +54,7 @@ export function askYesNo(
         [eq("y"), c(TE.of(true))],
         [eq("n"), c(TE.of(false))],
       ])(loop)
-    ),
+    )
   );
 }
 
