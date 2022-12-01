@@ -5,8 +5,9 @@ import { flow, pipe } from "fp-ts/function";
 import * as A from "fp-ts/Array";
 import * as I from "fp-ts/Identity";
 import * as RA from "fp-ts/ReadonlyArray";
-import * as RT from "fp-ts/ReaderTask";
+import * as RTE from "fp-ts/ReaderTaskEither";
 import * as T from "fp-ts/Task";
+import * as TE from "fp-ts/TaskEither";
 
 function gameLoop(name: readonly string[]): T.Task<void> {
   return pipe(
@@ -21,19 +22,19 @@ interface DefaultValue {
   readonly players: number;
 }
 
-const askNumberOfPlayers: RT.ReaderTask<DefaultValue, number> = (d) =>
+const askNumberOfPlayers: RTE.ReaderTaskEither<DefaultValue, Error, number> = (d) =>
   askBetween("How many players?", 3, 6, d.players);
 
-const setEachPlayersName: (n: number) => T.Task<readonly string[]> = flow(
-  curry2(A.makeBy<T.Task<string>>),
+const setEachPlayersName: (n: number) => TE.TaskEither<Error, readonly string[]> = flow(
+  curry2(A.makeBy<TE.TaskEither<Error, string>>),
   I.ap((x) => askNonEmpty(`Name of Player ${x + 1}:`)),
-  T.sequenceSeqArray
+  TE.sequenceSeqArray
 );
 
-const main: RT.ReaderTask<DefaultValue, void> = pipe(
+const main: RTE.ReaderTaskEither<DefaultValue, Error, void> = pipe(
   askNumberOfPlayers,
-  RT.chainTaskK(setEachPlayersName),
-  RT.chainTaskK(gameLoop)
+  RTE.chainTaskEitherK(setEachPlayersName),
+  RTE.chainTaskK(gameLoop)
 );
 
 const deps = {
