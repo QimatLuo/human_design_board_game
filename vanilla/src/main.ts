@@ -1,4 +1,5 @@
 import { askBetween, askNonEmpty, askYesNo } from "./ask";
+import { GameState, increaseTurns } from "./GameState";
 import { reload } from "./side-effects";
 import { curry2 } from "fp-ts-std/Function";
 import { flow, pipe } from "fp-ts/function";
@@ -6,15 +7,23 @@ import * as A from "fp-ts/Array";
 import * as I from "fp-ts/Identity";
 import * as RA from "fp-ts/ReadonlyArray";
 import * as RTE from "fp-ts/ReaderTaskEither";
-import * as T from "fp-ts/Task";
+import * as SRTE from "fp-ts/StateReaderTaskEither";
 import * as TE from "fp-ts/TaskEither";
 
-function gameLoop(name: readonly string[]): T.Task<void> {
+function gameLoop(
+  name: readonly string[]
+): SRTE.StateReaderTaskEither<GameState, DefaultValue, Error, void> {
   return pipe(
     name,
-    RA.map((x) => askYesNo(`Player ${x} do something.`)),
-    T.sequenceSeqArray,
-    T.chain((b) => (b ? gameLoop(name) : T.of(undefined)))
+    RA.map(
+      flow(
+        (x) => askYesNo(`Player ${x} do something.`),
+        SRTE.fromTaskEither<Error, boolean, GameState, DefaultValue>,
+        SRTE.chainStateK((x) => (s) => [x, increaseTurns(s)])
+      )
+    ),
+    SRTE.sequenceArray,
+    SRTE.chain((b) => (b ? gameLoop(name) : SRTE.of(undefined)))
   );
 }
 
@@ -34,13 +43,18 @@ const setEachPlayersName: (
   TE.sequenceSeqArray
 );
 
-const main: RTE.ReaderTaskEither<DefaultValue, Error, void> = pipe(
-  askNumberOfPlayers,
-  RTE.chainTaskEitherK(setEachPlayersName),
-  RTE.chainTaskK(gameLoop)
+const main = pipe(
+  SRTE.fromReaderTaskEither<DefaultValue, Error, number, GameState>(
+    askNumberOfPlayers
+  ),
+  SRTE.chainTaskEitherK(setEachPlayersName),
+  SRTE.chain(gameLoop)
 );
 
 const deps = {
   players: 3,
 };
-main(deps)().finally(reload); // eslint-disable-line functional/no-expression-statement
+const gameState = {
+  turns: 0,
+};
+main(gameState)(deps)().finally(reload); // eslint-disable-line functional/no-expression-statement
