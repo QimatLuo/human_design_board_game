@@ -1,39 +1,60 @@
 import { askBetween, askNonEmpty, askYesNo } from "./ask";
-import { putStrLn, reload } from "./side-effects";
-import { constant as c, pipe } from "fp-ts/function";
-import { randomInt } from "fp-ts/Random";
-import * as T from "fp-ts/Task";
+import { GameState, increaseTurns } from "./GameState";
+import { reload } from "./side-effects";
+import { curry2 } from "fp-ts-std/Function";
+import { flow, pipe } from "fp-ts/function";
+import * as A from "fp-ts/Array";
+import * as I from "fp-ts/Identity";
+import * as RA from "fp-ts/ReadonlyArray";
+import * as RTE from "fp-ts/ReaderTaskEither";
+import * as SRTE from "fp-ts/StateReaderTaskEither";
+import * as TE from "fp-ts/TaskEither";
 
-//
-// helpers
-//
-
-// get a random int between 1 and 5
-const random = T.fromIO(randomInt(1, 5));
-
-//
-// game
-//
-
-function gameLoop(name: string): T.Task<void> {
+function gameLoop(
+  name: readonly string[]
+): SRTE.StateReaderTaskEither<GameState, DefaultValue, Error, void> {
   return pipe(
-    T.Do,
-    T.apS("secret", random),
-    T.apS("guess", askBetween(`Dear ${name}, please guess a number.`, 1, 5, 1)),
-    T.chain(({ secret, guess }) =>
-      guess === secret
-        ? putStrLn(`You guessed right, ${name}!`)
-        : putStrLn(`You guessed wrong, ${name}! The number was: ${secret}`)
+    name,
+    RA.map(
+      flow(
+        (x) => askYesNo(`Player ${x} do something.`),
+        SRTE.fromTaskEither<Error, boolean, GameState, DefaultValue>,
+        SRTE.chainStateK((x) => (s) => [x, increaseTurns(s)])
+      )
     ),
-    T.chain(c(askYesNo(`Do you want to continue, ${name}?`, "y"))),
-    T.chain((b) => (b ? gameLoop(name) : T.of(undefined)))
+    SRTE.sequenceArray,
+    SRTE.chain((b) => (b ? gameLoop(name) : SRTE.of(undefined)))
   );
 }
 
-const main: T.Task<void> = pipe(
-  askNonEmpty("What is your name?", "Player"),
-  T.chainFirst((name) => putStrLn(`Hello, ${name} welcome to the game!`)),
-  T.chain(gameLoop)
+interface DefaultValue {
+  readonly players: number;
+}
+
+const askNumberOfPlayers: RTE.ReaderTaskEither<DefaultValue, Error, number> = (
+  d
+) => askBetween("How many players?", 3, 6, d.players);
+
+const setEachPlayersName: (
+  n: number
+) => TE.TaskEither<Error, readonly string[]> = flow(
+  curry2(A.makeBy<TE.TaskEither<Error, string>>),
+  I.ap((x) => askNonEmpty(`Name of Player ${x + 1}:`)),
+  TE.sequenceSeqArray
 );
 
-main().finally(reload); // eslint-disable-line functional/no-expression-statement
+const main = pipe(
+  SRTE.fromReaderTaskEither<DefaultValue, Error, number, GameState>(
+    askNumberOfPlayers
+  ),
+  SRTE.chainTaskEitherK(setEachPlayersName),
+  SRTE.chain(gameLoop)
+);
+
+const deps = {
+  players: 3,
+};
+const gameState = {
+  turns: 0,
+};
+main(gameState)(deps)().finally(reload); // eslint-disable-line functional/no-expression-statement
