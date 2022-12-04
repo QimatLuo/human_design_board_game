@@ -1,3 +1,4 @@
+import "./style.css";
 import { askBetween, askNonEmpty, askYesNo } from "./ask";
 import { GameState, increaseTurns } from "./GameState";
 import { reload } from "./side-effects";
